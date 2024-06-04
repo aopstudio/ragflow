@@ -57,6 +57,36 @@ def find_codec(blob):
 
     return "utf-8"
 
+QUESTION_PATTERN = [
+    r"第[零一二三四五六七八九十百0-9]+问",
+    r"第[零一二三四五六七八九十百0-9]+条",
+    r"[\(（][零一二三四五六七八九十百]+[\)）]",
+    r"第[0-9]+问",
+    r"第[0-9]+条",
+    r"[0-9]{1,2}[\. 、]",
+    r"[零一二三四五六七八九十百]+[ 、]",
+    r"[\(（][0-9]{1,2}[\)）]",
+    r"QUESTION (ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)",
+    r"QUESTION (I+V?|VI*|XI|IX|X)",
+    r"QUESTION [0-9]+",
+]
+
+def qbullets_category(sections):
+    global QUESTION_PATTERN
+    hits = [0] * len(QUESTION_PATTERN)
+    for i, pro in enumerate(QUESTION_PATTERN):
+        for sec in sections:
+            if re.match(pro, sec) and not not_bullet(sec):
+                hits[i] += 1
+                break
+    maxium = 0
+    res = -1
+    for i, h in enumerate(hits):
+        if h <= maxium:
+            continue
+        res = i
+        maxium = h
+    return res, QUESTION_PATTERN[res]
 
 BULLET_PATTERN = [[
     r"第[零一二三四五六七八九十百0-9]+(分?编|部分)",
@@ -97,6 +127,11 @@ def not_bullet(line):
     ]
     return any([re.match(r, line) for r in patt])
 
+def not_question_bullet(line):
+    patt = [
+        r"0", r"[0-9]+ +[0-9~个只-]", r"[0-9]+\.{2,}", r"[0-9]+[~-]+[0-9]+"
+    ]
+    return any([re.search(r, line) for r in patt])
 
 def bullets_category(sections):
     global BULLET_PATTERN
