@@ -121,7 +121,7 @@ class Pdf(PdfParser):
                         qa_list.append((last_q, last_a)) # submit last question
                         last_q, last_a = '', '' # empty last question
                     else:
-                        last_q = re_obj.group()
+                        last_q = re_obj.group().lstrip(re.match(reg,re_obj.group()).group())    # remove bullet index
                 if last_end != len(section):
                     remainer = section[last_end:]
                     last_a = f'{last_a}{remainer}'
