@@ -21,6 +21,10 @@ from rag.utils import num_tokens_from_string
 from . import rag_tokenizer
 import re
 import copy
+import roman_numbers as r
+from word2number import w2n
+from cn2an import cn2an
+from icecream import ic
 
 all_codecs = [
     'utf-8', 'gb2312', 'gbk', 'utf_16', 'ascii', 'big5', 'big5hkscs',
@@ -58,19 +62,46 @@ def find_codec(blob):
     return "utf-8"
 
 QUESTION_PATTERN = [
-    r"第[零一二三四五六七八九十百0-9]+问",
-    r"第[零一二三四五六七八九十百0-9]+条",
-    r"[\(（][零一二三四五六七八九十百]+[\)）]",
-    r"第[0-9]+问",
-    r"第[0-9]+条",
-    r"[0-9]{1,2}[\. 、]",
-    r"[零一二三四五六七八九十百]+[ 、]",
-    r"[\(（][0-9]{1,2}[\)）]",
+    r"第([零一二三四五六七八九十百0-9]+)问",
+    r"第([零一二三四五六七八九十百0-9]+)条",
+    r"[\(（]([零一二三四五六七八九十百]+)[\)）]",
+    r"第([0-9]+)问",
+    r"第([0-9]+)条",
+    r"([0-9]{1,2})[\. 、]",
+    r"([零一二三四五六七八九十百]+)[ 、]",
+    r"[\(（]([0-9]{1,2})[\)）]",
     r"QUESTION (ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)",
     r"QUESTION (I+V?|VI*|XI|IX|X)",
-    r"QUESTION [0-9]+",
+    r"QUESTION ([0-9]+)",
 ]
 
+def has_qbullet(reg, section):
+    q_reg = r'(\w|\W)*?(?:？|\?|\n|$)+'
+    full_reg = reg + q_reg
+    print(full_reg)
+    has_bull = re.match(full_reg, section)
+    end_reg = r'[,.;，。；]$'
+    index_str = None
+    if has_bull:
+        if re.search(end_reg, has_bull.group()):
+            has_bull = False
+        else:
+            index_str = has_bull.group(1)
+            print(index_str)
+    return has_bull, index_int(index_str) if ic(index_str) else None
+
+def index_int(index_str):
+    try:
+        res=int(index_str)
+    except ValueError:
+        try:
+            res=w2n.word_to_num(index_str)
+        except ValueError:
+            try:
+                res = cn2an(index_str)
+            except ValueError:
+                res = r.number(index_str)
+    return res
 def qbullets_category(sections):
     global QUESTION_PATTERN
     hits = [0] * len(QUESTION_PATTERN)
