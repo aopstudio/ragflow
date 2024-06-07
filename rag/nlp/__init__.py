@@ -24,7 +24,6 @@ import copy
 import roman_numbers as r
 from word2number import w2n
 from cn2an import cn2an
-from icecream import ic
 
 all_codecs = [
     'utf-8', 'gb2312', 'gbk', 'utf_16', 'ascii', 'big5', 'big5hkscs',
@@ -75,22 +74,48 @@ QUESTION_PATTERN = [
     r"QUESTION ([0-9]+)",
 ]
 
-def has_qbullet(reg, section):
+def has_qbullet(reg, box, last_box, last_index, last_bull, bull_x0_list):
+    section, last_section = box['text'], last_box['text']
     q_reg = r'(\w|\W)*?(?:？|\?|\n|$)+'
     full_reg = reg + q_reg
-    print(full_reg)
     has_bull = re.match(full_reg, section)
-    end_reg = r'[,.;，。；]$'
     index_str = None
     if has_bull:
-        if re.search(end_reg, has_bull.group()):
-            has_bull = False
+        if last_bull and box['x0']-last_box['x0']>10:   # 前一个是问题，但这一个有缩进，说明不是问题
+            return None, last_index
+        if not last_bull and box['x0'] >= last_box['x0'] and box['top'] - last_box['top'] < 20:  # 前一个不是问题，这一个在前一个右边，而且上下离得很近，说明也不是问题
+            return None, last_index
+        avg_bull_x0 = 0
+        if bull_x0_list:
+            avg_bull_x0 = sum(bull_x0_list) / len(bull_x0_list)
         else:
-            index_str = has_bull.group(1)
-            print(index_str)
-    return has_bull, index_int(index_str) if ic(index_str) else None
+            avg_bull_x0 = box['x0']
+        if box['x0'] - avg_bull_x0 > 10:    # 满足上面所有条件，但布局明显比其他问题偏右
+            return None, last_index
+        index_str = has_bull.group(1)
+        index = index_int(index_str)
+        if last_section[-1] == ':' or last_section[-1] == '：':
+            return None, last_index
+        if section[-1] == '.' or section[-1] == '。':
+            return None, last_index
+        if not last_index or index >= last_index:  # 标号比前一个大于等于
+            bull_x0_list.append(box['x0'])
+            return has_bull, index
+        if section[-1] == '?' or section[-1] == '？':
+            bull_x0_list.append(box['x0'])
+            return has_bull, index
+        if box['layout_type'] == 'title':
+            bull_x0_list.append(box['x0'])
+            return has_bull, index
+        pure_section = section.lstrip(re.match(reg, section).group()).lower()
+        ask_reg = r'(what|when|where|how|why|which|who|whose|为什么|为啥|哪)'
+        if re.match(ask_reg, pure_section):
+            bull_x0_list.append(box['x0'])
+            return has_bull, index
+    return None, last_index
 
 def index_int(index_str):
+    res = -1
     try:
         res=int(index_str)
     except ValueError:
@@ -100,8 +125,12 @@ def index_int(index_str):
             try:
                 res = cn2an(index_str)
             except ValueError:
-                res = r.number(index_str)
+                try:
+                    res = r.number(index_str)
+                except ValueError:
+                    return -1
     return res
+
 def qbullets_category(sections):
     global QUESTION_PATTERN
     hits = [0] * len(QUESTION_PATTERN)
