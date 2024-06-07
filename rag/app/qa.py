@@ -78,7 +78,7 @@ class Pdf(PdfParser):
         cron_logger.info("OCR({}~{}): {}".format(from_page, to_page, timer() - start))
         # self.page_images, self.boxes = self.page_images[-2:-1], self.boxes[-2:-1]
         start = timer()
-        self._layouts_rec(zoomin)
+        self._layouts_rec(zoomin, drop=False)
         callback(0.63, "Layout analysis finished.")
         self._table_transformer_job(zoomin)
         callback(0.65, "Table analysis finished.")

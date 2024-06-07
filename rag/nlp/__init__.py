@@ -81,6 +81,10 @@ def has_qbullet(reg, box, last_box, last_index, last_bull, bull_x0_list):
     has_bull = re.match(full_reg, section)
     index_str = None
     if has_bull:
+        if 'x0' not in last_box:
+            last_box['x0'] = box['x0']
+        if 'top' not in last_box:
+            last_box['top'] = box['top']
         if last_bull and box['x0']-last_box['x0']>10:   # 前一个是问题，但这一个有缩进，说明不是问题
             return None, last_index
         if not last_bull and box['x0'] >= last_box['x0'] and box['top'] - last_box['top'] < 20:  # 前一个不是问题，这一个在前一个右边，而且上下离得很近，说明也不是问题
