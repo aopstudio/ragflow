@@ -95,7 +95,6 @@ class Pdf(PdfParser):
         if q_bull == -1:
             raise ValueError("Unable to recognize Q&A structure.")
         qai_list = []
-        bull_count = 0
         last_q, last_a, last_tag = '', '', ''
         last_index = -1
         last_box = {'text':''}
@@ -120,7 +119,7 @@ class Pdf(PdfParser):
                 last_tag = line_tag
         if last_q:
             qai_list.append((last_q, last_a, *self.crop(last_tag, need_position=True)))
-        return qai_list
+        return qai_list, tbls
     
 def rmPrefix(txt):
     return re.sub(
@@ -218,8 +217,12 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
     elif re.search(r"\.pdf$", filename, re.IGNORECASE):
         pdf_parser = Pdf()
         count = 0
-        for q, a, image, poss  in pdf_parser(filename if not binary else binary,
-                                    from_page=0, to_page=10000, callback=callback):
+        qai_list, tbls = pdf_parser(filename if not binary else binary,
+                                    from_page=0, to_page=10000, callback=callback)
+        
+        res = tokenize_table(tbls, doc, eng)
+
+        for q, a, image, poss in qai_list:
             count += 1
             res.append(beAdocPdf(deepcopy(doc), q, a, eng, image, poss))
         return res
