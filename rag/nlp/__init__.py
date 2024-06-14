@@ -100,8 +100,6 @@ def has_qbullet(reg, box, last_box, last_index, last_bull, bull_x0_list):
         index = index_int(index_str)
         if last_section[-1] == ':' or last_section[-1] == '：':
             return None, last_index
-        if section[-1] == '.' or section[-1] == '。':
-            return None, last_index
         if not last_index or index >= last_index:  # 标号比前一个大于等于
             bull_x0_list.append(box['x0'])
             return has_bull, index
