@@ -19,7 +19,8 @@ from openpyxl import load_workbook
 from rag.nlp import is_english, random_choices, find_codec, qbullets_category, add_positions, has_qbullet
 from rag.nlp import rag_tokenizer, tokenize_table
 from rag.settings import cron_logger
-from deepdoc.parser import PdfParser, ExcelParser
+from docx import Document
+from deepdoc.parser import PdfParser, ExcelParser, DocxParser
 class Excel(ExcelParser):
     def __call__(self, fnm, binary=None, callback=None):
         if not binary:
@@ -119,6 +120,59 @@ class Pdf(PdfParser):
         if last_q:
             qai_list.append((last_q, last_a, *self.crop(last_tag, need_position=True)))
         return qai_list, tbls
+    
+class Docx(DocxParser):
+    def __init__(self):
+        pass
+
+    def __clean(self, line):
+        line = re.sub(r"\u3000", " ", line).strip()
+        return line
+    def __call__(self, filename, binary=None, from_page=0, to_page=100000, callback=None):
+        self.doc = Document(
+            filename) if not binary else Document(BytesIO(binary))
+        pn = 0
+        lines = []
+        for p in self.doc.paragraphs:
+            if pn > to_page:
+                break
+            if from_page <= pn < to_page and p.text.strip():
+                lines.append(self.__clean(p.text))
+            for run in p.runs:
+                if 'lastRenderedPageBreak' in run._element.xml:
+                    pn += 1
+                    continue
+                if 'w:br' in run._element.xml and 'type="page"' in run._element.xml:
+                    pn += 1
+        qa_list = []
+        last_question, last_anwser = '', ''
+        for line in lines:
+            if match_group := re.match(r'(问：|问题：|Q:|Question:)(\w|\W)+(\?|？)',line):  # line以问题开头
+                qa_list.append((last_question,last_anwser))
+                last_question = match_group.group()
+                last_anwser = line.lstrip(last_question)
+            else:
+                last_anwser = f'{last_anwser}\n{line}'
+
+        tbls = []
+        for tb in self.doc.tables:
+            html= "<table>"
+            for r in tb.rows:
+                html += "<tr>"
+                i = 0
+                while i < len(r.cells):
+                    span = 1
+                    c = r.cells[i]
+                    for j in range(i+1, len(r.cells)):
+                        if c.text == r.cells[j].text:
+                            span += 1
+                            i = j
+                    i += 1
+                    html += f"<td>{c.text}</td>" if span == 1 else f"<td colspan='{span}'>{c.text}</td>"
+                html += "</tr>"
+            html += "</table>"
+            tbls.append(((None, html), ""))
+        return qa_list, tbls
     
 def rmPrefix(txt):
     return re.sub(
@@ -225,6 +279,17 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
             count += 1
             res.append(beAdocPdf(deepcopy(doc), q, a, eng, image, poss))
         return res
+    elif re.search(r"\.docx$", filename, re.IGNORECASE):
+        docx_parser = Docx()
+        count = 0
+        qa_list, tbls = docx_parser(filename if not binary else binary,
+                                    from_page=0, to_page=10000, callback=callback)
+        
+        res = tokenize_table(tbls, doc, eng)
+
+        for q, a in qa_list:
+            res.append(beAdoc(deepcopy(doc), q, a, eng))
+        return res
 
 
     raise NotImplementedError(
@@ -237,5 +302,5 @@ if __name__ == "__main__":
     def dummy(prog=None, msg=""):
         pass
     import json
-
-    chunk(sys.argv[1], from_page=0, to_page=10, callback=dummy)
+    from icecream import ic
+    ic(chunk(sys.argv[1], from_page=0, to_page=10, callback=dummy))
