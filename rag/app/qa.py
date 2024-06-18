@@ -147,13 +147,16 @@ class Docx(DocxParser):
         qa_list = []
         last_question, last_anwser = '', ''
         for line in lines:
-            if match_group := re.match(r'(问：|问题：|Q:|Question:)(\w|\W)+(\?|？)',line):  # line以问题开头
-                qa_list.append((last_question,last_anwser))
-                last_question = match_group.group()
-                last_anwser = line.lstrip(last_question)
-            else:
-                last_anwser = f'{last_anwser}\n{line}'
-
+            last_pos = 0
+            for match in re.finditer(r'(问：|问题：|Q:|Question:)(\w|\W)+(\?|？)',line):  # line以问题开头
+                if last_question:
+                    last_anwser = f'{last_anwser}{line[last_pos:match.span()[0]]}'
+                    qa_list.append((last_question,last_anwser))
+                    last_anwser = ''
+                last_question = match.group()
+                last_pos = match.span()[1]
+            last_anwser = f'{last_anwser}{line[last_pos:]}'
+        qa_list.append((last_question,last_anwser))
         tbls = []
         for tb in self.doc.tables:
             html= "<table>"
