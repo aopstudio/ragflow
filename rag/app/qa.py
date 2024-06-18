@@ -284,12 +284,9 @@ def chunk(filename, binary=None, lang="Chinese", callback=None, **kwargs):
         return res
     elif re.search(r"\.docx$", filename, re.IGNORECASE):
         docx_parser = Docx()
-        count = 0
-        qa_list, tbls = docx_parser(filename if not binary else binary,
+        qa_list, tbls = docx_parser(filename, binary,
                                     from_page=0, to_page=10000, callback=callback)
-        
         res = tokenize_table(tbls, doc, eng)
-
         for q, a in qa_list:
             res.append(beAdoc(deepcopy(doc), q, a, eng))
         return res
