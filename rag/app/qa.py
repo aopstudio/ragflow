@@ -120,7 +120,7 @@ class Pdf(PdfParser):
         if last_q:
             qai_list.append((last_q, last_a, *self.crop(last_tag, need_position=True)))
         return qai_list, tbls
-    
+
 class Docx(DocxParser):
     def __init__(self):
         pass
@@ -148,7 +148,7 @@ class Docx(DocxParser):
         last_question, last_anwser = '', ''
         for line in lines:
             last_pos = 0
-            for match in re.finditer(r'(问：|问题：|Q:|Question:)(\w|\W)+(\?|？)',line):  # line以问题开头
+            for match in re.finditer(r'(问|问题|Q|Question)(:|：)(\w|\W)+(\?|？)',line):  # line以问题开头
                 if last_question:
                     last_anwser = f'{last_anwser}{line[last_pos:match.span()[0]]}'
                     qa_list.append((last_question,last_anwser))
