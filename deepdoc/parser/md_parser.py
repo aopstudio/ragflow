@@ -21,10 +21,10 @@ class RAGFlowMdParser:
         # Standard Markdown table
         table_pattern = re.compile(
             r'''
-            (?:\n|^)               # 表格前面可能有换行
-            (?:\|.*?\|.*?\|.*?\n)  # 匹配表格的第一行
-            (?:\|(?:\s*[:-]+[-| :]*\s*)\|.*?\n)  # 匹配表格的分隔行
-            (?:\|.*?\|.*?\|.*?\n)+ # 匹配表格的内容行
+            (?:\n|^)                     
+            (?:\|.*?\|.*?\|.*?\n)        
+            (?:\|(?:\s*[:-]+[-| :]*\s*)\|.*?\n) 
+            (?:\|.*?\|.*?\|.*?\n)+
             ''', re.VERBOSE)
         tables = table_pattern.findall(markdown_text)
         remainder = table_pattern.sub('', markdown_text)
@@ -32,10 +32,10 @@ class RAGFlowMdParser:
         # Borderless Markdown table
         no_border_table_pattern = re.compile(
             r'''
-            (?:\n|^)               # 表格前面可能有换行
-            (?:\S.*?\|.*?\n)       # 匹配表格的第一行
-            (?:\|(?:\s*[:-]+[-| :]*\s*)\|.*?\n)    # 匹配表格的分隔行
-            (?:\S.*?\|.*?\n)+      # 匹配表格的内容行
+            (?:\n|^)                 
+            (?:\S.*?\|.*?\n)
+            (?:(?:\s*[:-]+[-| :]*\s*).*?\n)
+            (?:\S.*?\|.*?\n)+
             ''', re.VERBOSE)
         no_border_tables = no_border_table_pattern.findall(remainder)
         tables.extend(no_border_tables)

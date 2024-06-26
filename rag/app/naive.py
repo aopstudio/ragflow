@@ -142,13 +142,11 @@ class Markdown(MdParser):
         if binary:
             encoding = find_codec(binary)
             txt = binary.decode(encoding, errors="ignore")
+            txt += '\n'
         else:
             with open(filename, "r") as f:
-                while True:
-                    l = f.readline()
-                    if not l:
-                        break
-                    txt += l
+                txt = f.read()
+            txt += '\n'
         remainder, tables = self.extract_tables_and_remainder(txt)
         sections = []
         tbls = []
@@ -239,17 +237,6 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
     
     elif re.search(r"\.(md|markdown)$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
-        txt = ""
-        if binary:
-            encoding = find_codec(binary)
-            txt = binary.decode(encoding, errors="ignore")
-        else:
-            with open(filename, "r") as f:
-                while True:
-                    l = f.readline()
-                    if not l:
-                        break
-                    txt += l
         sections, tbls = Markdown(int(parser_config.get("chunk_token_num", 128)))(filename, binary)
         res = tokenize_table(tbls, doc, eng)
         callback(0.8, "Finish parsing.")
