@@ -142,12 +142,10 @@ class Markdown(MdParser):
         if binary:
             encoding = find_codec(binary)
             txt = binary.decode(encoding, errors="ignore")
-            txt += '\n'
         else:
             with open(filename, "r") as f:
                 txt = f.read()
-            txt += '\n'
-        remainder, tables = self.extract_tables_and_remainder(txt)
+        remainder, tables = self.extract_tables_and_remainder(f'{txt}\n')
         sections = []
         tbls = []
         for sec in remainder.split("\n"):
